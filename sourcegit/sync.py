@@ -55,6 +55,7 @@ class Synchronizer:
         with Transformator(
                 url=target_url, repo=repo, branch=repo.active_branch, **package_config
         ) as t:
+            import ipdb; ipdb.set_trace()
             t.clone_dist_git_repo()
 
             dist_git_new_branch = t.dist_git_repo.create_head(source_ref)
@@ -84,7 +85,7 @@ class Synchronizer:
                 logger.info("Creating a fork.")
                 project.fork_create()
 
-            # try to find an existing PR first
+            # try to find an existing PR first and update it, else the code below
 
             is_push_force = source_ref in project.fork.branches
 
