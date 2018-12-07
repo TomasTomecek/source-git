@@ -87,7 +87,6 @@ variables which are utilized by the containers:
 $ cat ./secrets.yaml
 github_token: 123456
 pagure_token: 456789
-pagure_user: joseph_the_rockstar
 ```
 
 Let's build and run now:
