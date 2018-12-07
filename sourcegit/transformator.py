@@ -198,6 +198,10 @@ class Transformator:
                          ],
                     fail=True)
 
+    @property
+    def head_commit_hash(self):
+        return self.repo.name
+
     @lru_cache()
     def get_commits_to_upstream(self, upstream, add_usptream_head_commit=False):
         """

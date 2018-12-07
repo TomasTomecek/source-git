@@ -7,6 +7,7 @@ from functools import lru_cache
 import git
 
 from onegittorulethemall.services.pagure import PagureService
+from sourcegit.constants import dg_pr_key_sg_commit, dg_pr_key_sg_pr
 from sourcegit.transformator import Transformator, get_package_mapping
 from sourcegit.utils import commits_to_nice_str
 
@@ -70,7 +71,8 @@ class Synchronizer:
 
             logger.debug(f"Commits in source-git PR:\n{commits_nice_str}")
 
-            msg = f"{pr_url}\n\n{commits_nice_str}"
+            msg = (f"This pull request contains changes from upstream and is meant to integrate them into Fedora\n\n"
+                   f"{dg_pr_key_sg_pr}: {pr_id}\n{dg_pr_key_sg_commit}: {t.head_commit_hash}")
             t.commit_distgit(title=title, msg=msg)
 
             package_name = package_config["package_name"]
@@ -81,6 +83,8 @@ class Synchronizer:
             if not project.fork:
                 logger.info("Creating a fork.")
                 project.fork_create()
+
+            # try to find an existing PR first
 
             is_push_force = source_ref in project.fork.branches
 

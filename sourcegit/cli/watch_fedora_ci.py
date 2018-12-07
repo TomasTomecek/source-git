@@ -12,6 +12,7 @@ import libpagure
 import requests
 
 from sourcegit.config import get_context_settings
+from sourcegit.constants import dg_pr_key_sg_pr, dg_pr_key_sg_commit
 
 package_mapping = {
     "python-docker": {
@@ -53,7 +54,7 @@ class Holyrood:
         pr_description = pr_info["initial_comment"]
 
         # find info for the matching source git pr
-        re_search = re.search(r"Source-git pull request ID:\s*(\d+)", pr_description)
+        re_search = re.search(r"%s:\s*(\d+)" % dg_pr_key_sg_pr, pr_description)
         try:
             sg_pr_id = int(re_search[1])
         except (IndexError, ValueError):
@@ -61,7 +62,7 @@ class Holyrood:
             return
 
         # check the commit which tests were running for
-        re_search = re.search(r"Source-git commit:\s*(\w+)", pr_description)
+        re_search = re.search(r"%s:\s*(\w+)" % dg_pr_key_sg_commit, pr_description)
         try:
             commit = re_search[1]
         except (IndexError, ValueError):
