@@ -13,10 +13,41 @@ from ogr.services.pagure import PagureService
 from ogr.services.github import GithubService
 from packit.api import PackitAPI
 from packit.config import Config, PackageConfig, get_packit_config_from_repo
+from packit.constants import GH2FED_RELEASE_TOPIC
+from packit.exceptions import PackitException
 from packit.fed_mes_consume import Consumerino
 from packit.watcher import SourceGitCheckHelper
 
 logger = logging.getLogger(__name__)
+
+
+class Fedmsg:
+    """
+    A real, authentic, breathing message from fedmsg bus
+    """
+    def __init__(self, the_message: dict):
+        self.msg = the_message
+        try:
+            self.topic = the_message["topic"]
+        except KeyError:
+            raise PackitException("Provide fedmsg doesn't have topic set -- that doesn't seem to be a fedmsg.")
+
+
+class ReleaseFedmsg(Fedmsg):
+    """
+    Messages related to releases
+    """
+    @lru_cache
+    def owner(self):
+        if self.topic == GH2FED_RELEASE_TOPIC:
+            return self.msg["msg"]["repository"]["owner"]["login"]
+
+    def repository_name(self):
+        repo_name = fedmsg["msg"]["repository"]["name"]
+
+    @lru_cache
+    def version(self):
+        version = fedmsg["msg"]["release"]["tag_name"]
 
 
 class PackitBotAPI:
@@ -69,11 +100,18 @@ class PackitBotAPI:
         packit_api = PackitAPI(config=self.config, package_config=package_config)
         packit_api.sync_pr(pr_id=pr_id, dist_git_branch=dist_git_branch)
 
-    def watch_upstream_release(self):
+    def sync_upstream_releases_using_gh2fed(self):
         """
         Listen on fedmsg and sync the upstream releases to the upstream pull-request.
         """
-        for topic, msg in self.consumerino.iterate_releases():
+        for topic, msg in self.consumerino.iterate_releases_using_gh2fed():
+            self.sync_upstream_release_with_fedmsg(fedmsg=msg)
+
+    def sync_upstream_releases_using_urm(self):
+        """
+        Listen on fedmsg and sync the upstream releases to the upstream pull-request.
+        """
+        for topic, msg in self.consumerino.iterate_releases_using_urm():
             self.sync_upstream_release_with_fedmsg(fedmsg=msg)
 
     def sync_upstream_release_with_fedmsg(self, fedmsg: Dict):
@@ -82,6 +120,7 @@ class PackitBotAPI:
 
         :param fedmsg: fedmsg dict
         """
+        import ipdb; ipdb.set_trace()
         repo_name = fedmsg["msg"]["repository"]["name"]
         namespace = fedmsg["msg"]["repository"]["owner"]["login"]
         version = fedmsg["msg"]["release"]["tag_name"]
