@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -42,9 +43,20 @@ def test_basic_distgit_workflow(tmpdir):
 
     subprocess.check_call(["git", "add", "README"], cwd=repo)
     subprocess.check_call(["git", "commit", "-m", "test commit"], cwd=repo)
+
+    funky_dict = {"something": ["i", "n", "t", "e"], "rest": {"i": {"n": "g"}}}
+    f_d_str = json.dumps(funky_dict)
+    subprocess.check_call(["git", "notes", "add", "-m", f_d_str], cwd=repo)
+
     subprocess.check_call(
         ["git", "push", "origin", f"{branch_name}:{branch_name}"], cwd=repo
     )
+    subprocess.check_call(["git", "fetch", "origin"], cwd=repo)
+    notes_raw = subprocess.check_call(
+        ["git", "notes", "show", f"origin/{branch_name}"], cwd=repo
+    )
+    notes = json.loads(notes_raw)
+    assert notes["something"]
 
     pr = fork.pr_create("testing PR", "serious description", "master", branch_name)
 
