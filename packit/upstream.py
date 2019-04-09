@@ -295,7 +295,7 @@ class Upstream(PackitRepositoryBase):
                     commit.hexsha,
                     "--",
                     ".",
-                    '":(exclude)redhat"',
+                    '":(exclude)fedora"',  # TODO: make this configurable
                 ],
                 cwd=self.local_project.working_dir,
                 output=True,

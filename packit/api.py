@@ -350,9 +350,19 @@ class PackitAPI:
         :param output_file: path + filename where the srpm should be written, defaults to cwd
         :return: a path to the srpm
         """
-        version = self.up.get_current_version()
-        spec_version = self.up.get_specfile_version()
+        # version = self.up.get_current_version()
+        # spec_version = self.up.get_specfile_version()
+
+        upstream_ref = "239-stable-feb-2019"
+        patches = self.up.create_patches(
+            upstream=upstream_ref,
+            destination=self.dg.local_project.working_dir,
+        )
+        self.dg.add_patches_to_specfile(patches)
+        import ipdb; ipdb.set_trace()
+
         self.up.create_archive()
+
         if version != spec_version:
             try:
                 self.up.set_spec_version(
