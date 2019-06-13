@@ -2,7 +2,7 @@
 %global real_name packit
 
 Name:           %{real_name}
-Version:        0.4.1
+Version:        0.4.2.dev58+g01e3035.d20190613
 Release:        1%{?dist}
 Summary:        A tool for integrating upstream projects with Fedora operating system
 
@@ -73,6 +73,9 @@ python3 setup.py --command-packages=click_man.commands man_pages --target %{buil
 %{python3_sitelib}/*
 
 %changelog
+* Thu Jun 13 2019 Tomas Tomecek <ttomecek@redhat.com> - 0.4.2.dev58+g01e3035.d20190613-1
+- Development snapshot
+
 * Sat May 18 2019 Jiri Popelka <jpopelka@redhat.com> - 0.4.1-1
 - Patch release
 

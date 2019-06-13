@@ -21,7 +21,6 @@
 # SOFTWARE.
 import inspect
 import logging
-import shlex
 from pathlib import Path
 from typing import Optional, Callable, List, Tuple
 
@@ -29,13 +28,12 @@ import git
 from rebasehelper.specfile import SpecFile
 
 from packit.actions import ActionName
-from packit.config import Config, PackageConfig, RunCommandType
+from packit.command_runner import RUN_COMMAND_HANDLER_MAPPING, RunCommandHandler
+from packit.config import Config, PackageConfig
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.security import CommitVerifier
 from packit.utils import cwd
-from packit.command_runner import RUN_COMMAND_HANDLER_MAPPING
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,21 +42,28 @@ class PackitRepositoryBase:
     # mypy complains when this is a property
     local_project: LocalProject
 
-    def __init__(
-        self, config: Config, package_config: PackageConfig, sandcastle_object=None
-    ) -> None:
+    def __init__(self, config: Config, package_config: PackageConfig) -> None:
         """
-        sandcastle_object is an object to Sandcastle.
-        https://github.com/packit-service/sandcastle
-        from sandcastle.api import Sandcastle
-        The object handles OpenShift PODs like create, delete, exec command in a POD etc.
+        :param config: global configuration
+        :param package_config: configuration of the upstream project
         """
         self.config = config
         self.package_config = package_config
         self._specfile_path: Optional[str] = None
         self._specfile: Optional[SpecFile] = None
         self.allowed_gpg_keys: Optional[List[str]] = None
-        self.sandcastle_object = sandcastle_object
+
+        handler_kls = RUN_COMMAND_HANDLER_MAPPING[self.config.actions_handler]
+        import ipdb
+
+        ipdb.set_trace()
+        self.command_handler: RunCommandHandler = handler_kls(
+            local_project=self.local_project,
+            extra_kwargs={
+                "image_reference": config.handler_image_reference,
+                "k8s_namespace": config.handler_k8s_namespace,
+            },
+        )
 
     @property
     def specfile_dir(self) -> str:
@@ -236,34 +241,34 @@ class PackitRepositoryBase:
         if action in self.package_config.actions:
             command = self.package_config.actions[action]
             logger.info(f"Using user-defined script for {action}: {command}")
-            self.run_handler_command(command=command)
+            self.command_handler.run_command(command=command)
             return False
         logger.debug(f"Running default implementation for {action}.")
         return True
 
-    def run_handler_command(self, command, output=True):
-        """
-        Run command in a handler.
-        :param command: Command to run in CLI or in Openshift POD
-        :param output: return a stdout
-        :return:
-        """
-        logger.debug(
-            f"'actions_handler' defined in 'packit.yaml' is '{self.config.actions_handler}'"
-        )
-        select_handler = RunCommandType[self.config.actions_handler]
-        handler_kls = RUN_COMMAND_HANDLER_MAPPING[select_handler]
-        if not handler_kls or select_handler == RunCommandType.local:
-            handler = handler_kls(
-                local_project=self.local_project,
-                cwd=self.local_project.working_dir,
-                output=output,
-            )
-        else:
-            handler = handler_kls(sandcastle_object=self.sandcastle_object)
-        if not isinstance(command, list):
-            command = shlex.split(command)
-        return handler.run_command(command=command)
+    # def run_handler_command(self, command, output=True):
+    #     """
+    #     Run command in a handler.
+    #     :param command: Command to run in CLI or in Openshift POD
+    #     :param output: return a stdout
+    #     :return:
+    #     """
+    #     logger.debug(
+    #         f"'actions_handler' defined in 'packit.yaml' is '{self.config.actions_handler}'"
+    #     )
+    #     select_handler = RunCommandType[self.config.actions_handler]
+    #     handler_kls = RUN_COMMAND_HANDLER_MAPPING[select_handler]
+    #     if not handler_kls or select_handler == RunCommandType.local:
+    #         handler = handler_kls(
+    #             local_project=self.local_project,
+    #             cwd=self.local_project.working_dir,
+    #             output=output,
+    #         )
+    #     else:
+    #         handler = handler_kls(sandcastle_object=self.sandcastle_object)
+    #     if not isinstance(command, list):
+    #         command = shlex.split(command)
+    #     return handler.run_command(command=command)
 
     def get_output_from_action(self, action: ActionName):
         """

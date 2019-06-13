@@ -50,26 +50,17 @@ class Upstream(PackitRepositoryBase):
     """ interact with upstream project """
 
     def __init__(
-        self,
-        config: Config,
-        package_config: PackageConfig,
-        local_project: LocalProject,
-        sandcastle_object=None,
+        self, config: Config, package_config: PackageConfig, local_project: LocalProject
     ):
         """
-        sandcastle_object is an object to Sandcastle.
-        https://github.com/packit-service/sandcastle
-        from sandcastle.api import Sandcastle
-        The object handles OpenShift PODs like create, delete, exec command in a POD etc.
+        :param config: global configuration
+        :param package_config: configuration of the upstream project
+        :param local_project: public offender
         """
-        super().__init__(
-            config=config,
-            package_config=package_config,
-            sandcastle_object=sandcastle_object,
-        )
+        self.local_project = local_project
+        super().__init__(config=config, package_config=package_config)
         self.config = config
         self.package_config = package_config
-        self.local_project = local_project
 
         self.package_name: Optional[str] = self.package_config.downstream_package_name
 
@@ -490,12 +481,7 @@ class Upstream(PackitRepositoryBase):
         present_srpms = set(Path(srpm_dir).glob("*.src.rpm"))
         logger.debug("present srpms = %s", present_srpms)
         try:
-            out = run_command(
-                cmd,
-                output=True,
-                error_message="SRPM could not be created.",
-                cwd=self.local_project.working_dir,
-            ).strip()
+            out = self.command_handler.run_command(cmd, return_output=True).strip()
         except PackitException as ex:
             logger.error(f"Failed to create SRPM: {ex!r}")
             # TODO: provide logs as well

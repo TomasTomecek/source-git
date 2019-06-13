@@ -85,7 +85,9 @@ class Config(BaseConfig):
         self._pagure_user_token: str = ""
         self._pagure_fork_token: str = ""
         self.dry_run: bool = False
-        self.actions_handler: Optional[str] = "local"
+        self.actions_handler: RunCommandType = RunCommandType.local
+        self.handler_image_reference = "docker.io/usercont/sandcastle"
+        self.handler_k8s_namespace = "myproject"
 
         # path to a file where OGR should store HTTP requests
         # this is used for packit testing: don't expose this to users
@@ -131,7 +133,10 @@ class Config(BaseConfig):
         config.github_app_id = raw_dict.get("github_app_id", "")
         config.github_app_cert_path = raw_dict.get("github_app_cert_path", "")
         config.webhook_secret = raw_dict.get("webhook_secret", "")
-        config.actions_handler = raw_dict.get("actions_handler", "local")
+        # FIXME: \/ when the handler is not set
+        config.actions_handler = (
+            RunCommandType(raw_dict.get("actions_handler")) or RunCommandType.local
+        )
 
         return config
 
