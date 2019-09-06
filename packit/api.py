@@ -641,6 +641,9 @@ class PackitAPI:
                         "For more info check out https://packit.dev/"
                     ),
                     contact="user-cont-team@redhat.com",
+                    delete_after_days=60,
+                    unlisted_on_hp=True,
+                    enable_net=True,
                 )
             else:
                 raise PackitInvalidConfigException(
