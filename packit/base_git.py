@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import inspect
 import logging
 import shlex
 from pathlib import Path
@@ -27,6 +26,7 @@ from typing import Optional, Callable, List, Tuple, Iterable, Dict
 
 import git
 from git import PushInfo
+from rebasehelper.exceptions import RebaseHelperError
 from rebasehelper.specfile import SpecFile
 
 from packit.actions import ActionName
@@ -73,54 +73,42 @@ class PackitRepositoryBase:
 
     @property
     def absolute_specfile_dir(self) -> Path:
-        """ get dir where the spec file is"""
+        """ get dir where the spec file is """
         return Path(self.absolute_specfile_path).parent
 
     @property
     def absolute_specfile_path(self) -> Path:
         if not self._specfile_path:
-            # TODO: we should probably have a "discovery" phase before
-            #  creating Upstream, DistGit objects
-            #       when things which we don't know are discovered
-            # possible_paths = [
-            #     Path(self.local_project.working_dir)
-            #     / f"{self.package_config.downstream_package_name}.spec",
-            # ]
-            # for path in possible_paths:
-            #     if path.exists():
-            #         self._specfile_path = str(path)
-            #         break
             self._specfile_path = Path(self.local_project.working_dir).joinpath(
                 self.package_config.specfile_path
             )
             if not self._specfile_path.exists():
                 raise PackitException(f"Specfile {self._specfile_path} not found.")
-
         return self._specfile_path
 
     @property
     def specfile(self) -> SpecFile:
         if self._specfile is None:
-            # changing API is fun, where else could we use inspect?
-            s = inspect.signature(SpecFile)
-            if "changelog_entry" in s.parameters:
-                self._specfile = SpecFile(
-                    path=self.absolute_specfile_path,
-                    sources_location=str(self.absolute_specfile_dir),
-                    changelog_entry="",
+            try:
+                logger.debug(
+                    f"initialize spec instance, path={self.absolute_specfile_path}"
+                    f", sources={self.absolute_specfile_dir}"
                 )
-            else:
+                logger.debug(f"{list(self.absolute_specfile_path.iterdir())}")
                 self._specfile = SpecFile(
-                    path=self.absolute_specfile_path,
+                    path=str(self.absolute_specfile_path),
                     sources_location=str(self.absolute_specfile_dir),
                 )
+            except RebaseHelperError:
+                logger.exception("The spec file can't be parsed.")
+                raise
         return self._specfile
 
     def create_branch(
         self, branch_name: str, base: str = "HEAD", setup_tracking: bool = False
     ) -> git.Head:
         """
-        Create a new git branch in dist-git
+        Create a new git branch in the repository
 
         :param branch_name: name of the branch to check out and fetch
         :param base: we base our new branch on this one
@@ -351,6 +339,7 @@ class PackitRepositoryBase:
             raise PackitException(msg)
 
     def fetch_upstream_archive(self):
+        logger.info("download remote sources")
         with cwd(self.absolute_specfile_dir):
             self.specfile.download_remote_sources()
 
